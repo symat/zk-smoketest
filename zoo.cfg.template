@@ -1,0 +1,14 @@
+initLimit=10
+syncLimit=5
+dataDir=/var/lib/zookeeper
+dataLogDir=/var/lib/zookeeper
+clientPort=2181
+maxClientCnxns=60
+minSessionTimeout=4000
+maxSessionTimeout=60000
+autopurge.purgeInterval=24
+autopurge.snapRetainCount=5
+quorum.auth.enableSasl=false
+quorum.cnxn.threads.size=20
+leaderServes=yes
+

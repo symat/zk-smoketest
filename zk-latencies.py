@@ -63,30 +63,36 @@ zkclient.options = options
 
 zookeeper.set_log_stream(open("cli_log_%d.txt" % (os.getpid()),"w"))
 
+summary = dict()
+
 class SmokeError(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
 
-def print_elap(start, msg, count):
+def print_elap(start, msg, count, summary_key = None):
     elapms = (time.time() - start) * 1000
     if int(elapms) != 0:
         print("%s in %6d ms (%f ms/op %f/sec)"
               % (msg, int(elapms), elapms/count, count/(elapms/1000.0)))
+        if summary_key:
+            if summary_key not in summary:
+                summary[summary_key] = []
+            summary[summary_key].append(elapms/count)
     else:
         print("%s in %6d ms (included in prior)" % (msg, int(elapms)))
 
-def timer(ops, msg, count=options.znode_count):
+def timer(ops, msg, count=options.znode_count, summary_key = None):
     start = time.time()
     for op in ops:
         pass
-    print_elap(start, msg, count)
+    print_elap(start, msg, count, summary_key)
 
-def timer2(func, msg, count=options.znode_count):
+def timer2(func, msg, count=options.znode_count, summary_key = None):
     start = time.time()
     func()
-    print_elap(start, msg, count)
+    print_elap(start, msg, count, summary_key)
 
 def child_path(i):
     return "%s/session_%d" % (options.root_znode, i)
@@ -157,7 +163,7 @@ def asynchronous_latency_test(s, data):
                 raise SmokeError("invalid path %s for operation %d on handle %d" %
                                  (cb.path, j, cb.handle))
 
-    timer2(func, "created %7d permanent znodes " % (options.znode_count))
+    timer2(func, "created %7d permanent znodes " % (options.znode_count), summary_key="create permanent")
 
     # set znode_count znodes
     def func():
@@ -171,7 +177,7 @@ def asynchronous_latency_test(s, data):
         for cb in callbacks:
             cb.waitForSuccess()
 
-    timer2(func, "set     %7d           znodes " % (options.znode_count))
+    timer2(func, "set     %7d           znodes " % (options.znode_count), summary_key="set permanent")
 
     # get znode_count znodes
     def func():
@@ -188,7 +194,7 @@ def asynchronous_latency_test(s, data):
                 raise SmokeError("invalid data %s for operation %d on handle %d" %
                                  (cb.value, j, cb.handle))
 
-    timer2(func, "get     %7d           znodes " % (options.znode_count))
+    timer2(func, "get     %7d           znodes " % (options.znode_count), summary_key="get permanent")
 
 
     # delete znode_count znodes (perm)
@@ -203,7 +209,7 @@ def asynchronous_latency_test(s, data):
         for cb in callbacks:
             cb.waitForSuccess()
 
-    timer2(func, "deleted %7d permanent znodes " % (options.znode_count))
+    timer2(func, "deleted %7d permanent znodes " % (options.znode_count), summary_key="delete permanent")
 
     # create znode_count znodes (ephemeral)
     def func():
@@ -220,7 +226,7 @@ def asynchronous_latency_test(s, data):
                 raise SmokeError("invalid path %s for operation %d on handle %d" %
                                  (cb.path, j, cb.handle))
 
-    timer2(func, "created %7d ephemeral znodes " % (options.znode_count))
+    timer2(func, "created %7d ephemeral znodes " % (options.znode_count), summary_key="create ephemeral")
 
     watches = [CountingWatcher() for x in xrange(options.watch_multiple)]
 
@@ -239,7 +245,7 @@ def asynchronous_latency_test(s, data):
 
     timer2(func, "watched %7d           znodes " %
            (options.watch_multiple * options.znode_count),
-           options.watch_multiple * options.znode_count)
+           options.watch_multiple * options.znode_count, summary_key="watch ephemeral")
 
     # delete znode_count znodes (ephemeral)
     def func():
@@ -253,7 +259,7 @@ def asynchronous_latency_test(s, data):
         for cb in callbacks:
             cb.waitForSuccess()
 
-    timer2(func, "deleted %7d ephemeral znodes " % (options.znode_count))
+    timer2(func, "deleted %7d ephemeral znodes " % (options.znode_count), summary_key="delete ephemeral")
 
     start = time.time()
     for watch in watches:
@@ -279,6 +285,10 @@ def get_zk_servers(filename):
                         for k, v in config.items() if k.startswith('server.'))]
     else:
         return options.servers.split(",")
+
+
+def summary_field(summary_key):
+    return sum(summary[summary_key]) / len(summary[summary_key])
 
 if __name__ == '__main__':
     data = options.znode_size * "x"
@@ -326,3 +336,8 @@ if __name__ == '__main__':
         s.close()
 
     print("Latency test complete")
+    print("summary:")
+    print("%f,%f,%f,%f,%f,%f,%f" % (summary_field("create permanent"), summary_field("set permanent"),
+                                    summary_field("get permanent"), summary_field("delete permanent"),
+                                    summary_field("create ephemeral"), summary_field("watch ephemeral"),
+                                    summary_field("delete ephemeral") ))

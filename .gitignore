@@ -1,2 +1,7 @@
 cli_log*.txt
 *.pyc
+./*.txt
+./*.log
+./*.csv
+lib-zk_cdh*/
+.idea/
