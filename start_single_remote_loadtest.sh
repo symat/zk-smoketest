@@ -8,6 +8,28 @@ LOAD_GENERATOR_HOST=${LOAD_GENERATOR_HOST:-"mszalay-zk-loadtest-6.vpc.cloudera.c
 ZK_VERSION=${ZK_VERSION:-"3.4.14"}
 ZNODE_SIZE_KB=${ZNODE_SIZE_KB:-1}
 ZNODE_COUNT=${ZNODE_COUNT:-10000}
+LOAD_GENERATOR_USE_SSL=${LOAD_GENERATOR_USE_SSL:-"false"}
+ZOOKEEPER_SERVER_PORT="2181"
+ZK_EXTRA_JVM_ARGS=${ZK_EXTRA_JVM_ARGS:-""}
+ADDITIONAL_LOADTEST_OPTIONS=${ADDITIONAL_LOADTEST_OPTIONS:-""}
+
+# setting up SSL related parameters if needed
+if [ "$LOAD_GENERATOR_USE_SSL" == "true" ]; then
+
+  ZOOKEEPER_SERVER_PORT="21811"
+  SSL_SERVER_CERTS=""
+  for server in $ZK_SERVER_HOSTS
+  do
+    SSL_SERVER_CERTS="${SSL_SERVER_CERTS}/root/zookeeper/${server}.crt,"
+  done
+
+  ADDITIONAL_LOADTEST_OPTIONS="${ADDITIONAL_LOADTEST_OPTIONS} --use_ssl"
+  ADDITIONAL_LOADTEST_OPTIONS="${ADDITIONAL_LOADTEST_OPTIONS} --ssl_client_cert=/root/zookeeper/${LOAD_GENERATOR_HOST}.crt"
+  ADDITIONAL_LOADTEST_OPTIONS="${ADDITIONAL_LOADTEST_OPTIONS} --ssl_server_certs=${SSL_SERVER_CERTS}"
+  ADDITIONAL_LOADTEST_OPTIONS="${ADDITIONAL_LOADTEST_OPTIONS} --ssl_client_key=/root/zookeeper/private-key.pem"
+  ADDITIONAL_LOADTEST_OPTIONS="${ADDITIONAL_LOADTEST_OPTIONS} --ssl_password=password"
+fi
+
 
 echo "=== parameters:"
 echo "   - ZK_VERSION: $ZK_VERSION"
@@ -15,6 +37,11 @@ echo "   - ZNODE_SIZE_KB: $ZNODE_SIZE_KB"
 echo "   - ZNODE_COUNT: $ZNODE_COUNT"
 echo "   - ZK_SERVER_HOSTS: $ZK_SERVER_HOSTS"
 echo "   - LOAD_GENERATOR_HOST: $LOAD_GENERATOR_HOST"
+echo "   - ZK_EXTRA_JVM_ARGS: $ZK_EXTRA_JVM_ARGS"
+echo "   - ZOOKEEPER_SERVER_PORT: $ZOOKEEPER_SERVER_PORT"
+echo "   - ADDITIONAL_LOADTEST_OPTIONS: $ADDITIONAL_LOADTEST_OPTIONS"
+
+ZK_DATA_FOLDER=/mnt/data/zookeeper
 
 
 echo "=== generate zoo.cfg file"
@@ -26,12 +53,13 @@ do
   myid=$((myid+1))
   echo "server.${myid}=${server}:2888:3888" >> /tmp/zoo.cfg
 done
+cat /tmp/zoo.cfg
 
-
-echo "=== upload zoo.cfg files"
+echo "=== upload zoo.cfg and start_zk.sh files"
 for server in $ZK_SERVER_HOSTS
 do
   scp /tmp/zoo.cfg $server:/root/zookeeper/
+  scp ./start_zk.sh $server:/root/zookeeper/
 done
 
 
@@ -51,7 +79,7 @@ myid=0
 for server in $ZK_SERVER_HOSTS
 do
   myid=$((myid+1))
-  ssh $server "/root/zookeeper/start_zk.sh $ZK_VERSION $myid"
+  ssh $server "/root/zookeeper/start_zk.sh $ZK_VERSION $myid '$ZK_EXTRA_JVM_ARGS'"
 done
 
 
@@ -59,7 +87,7 @@ echo "=== wait a bit to make sure zookeeper server started"
 sleep 15
 
 echo "=== start the load generator"
-ssh $LOAD_GENERATOR_HOST "cd /root/zk-smoketest && ./loadtest.sh $ZK_VERSION '$ZK_SERVER_HOSTS' $ZNODE_SIZE_KB $ZNODE_COUNT"
+ssh $LOAD_GENERATOR_HOST "cd /root/zk-smoketest && ./loadtest.sh $ZK_VERSION '$ZK_SERVER_HOSTS' $ZNODE_SIZE_KB $ZNODE_COUNT $ZOOKEEPER_SERVER_PORT '$ADDITIONAL_LOADTEST_OPTIONS'"
 
 
 echo "=== stop the zk processes"
@@ -81,7 +109,7 @@ NUMBER_OF_SERVERS=0
 for server in $ZK_SERVER_HOSTS
 do
   NUMBER_OF_SERVERS=$((NUMBER_OF_SERVERS + 1))
-  FOLDER_SIZE_KB=`ssh $server 'du -s /var/lib/zookeeper | cut -f1'`
+  FOLDER_SIZE_KB=`ssh $server "du -s ${ZK_DATA_FOLDER} | cut -f1"`
   SUM_FOLDER_SIZE_KB=$((SUM_FOLDER_SIZE_KB + FOLDER_SIZE_KB))
 done
 AVG_FOLDER_SIZE_KB=$((SUM_FOLDER_SIZE_KB / NUMBER_OF_SERVERS))

@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime, time, os
+import datetime, time, os, sys
 from optparse import OptionParser
 
 import zkclient
@@ -53,15 +53,36 @@ parser.add_option("", "--synchronous",
 parser.add_option("-v", "--verbose",
                   action="store_true", dest="verbose", default=False,
                   help="verbose output, include more detail")
+parser.add_option("-d", "--debug",
+                  action="store_true", dest="debug", default=False,
+                  help="enable debug logging for zookeeper C client on stderr (default: only info level written to cli_log_<pid>.txt")
 parser.add_option("-q", "--quiet",
                   action="store_true", dest="quiet", default=False,
                   help="quiet output, basically just success/failure")
+parser.add_option("-s", "--use_ssl",
+                  action="store_true", dest="use_ssl", default=False,
+                  help="connecting to the ZooKeeper cluster using SSL")
+parser.add_option("", "--ssl_client_cert", dest="ssl_client_cert",
+                  default=None, help="path to the client SSL certificate file")
+parser.add_option("", "--ssl_server_certs", dest="ssl_server_certs",
+                  default=None, help="comma separated list of paths to the server SSL certificate files")
+parser.add_option("", "--ssl_client_key", dest="ssl_client_key",
+                  default=None, help="path to the client SSL secret key file")
+parser.add_option("", "--ssl_password", dest="ssl_password",
+                  default=None, help="password to use during SSL ")
 
 (options, args) = parser.parse_args()
+if options.ssl_server_certs:
+    options.ssl_server_certs_list = map(lambda x: x.strip(), options.ssl_server_certs.split(","))
 
 zkclient.options = options
 
-zookeeper.set_log_stream(open("cli_log_%d.txt" % (os.getpid()),"w"))
+# set to debug level
+if options.debug:
+    zookeeper.set_debug_level(4)
+    zookeeper.set_log_stream(sys.stderr)
+else:
+    zookeeper.set_log_stream(open("cli_log_%d.txt" % (os.getpid()),"w"))
 
 summary = dict()
 
@@ -298,9 +319,11 @@ if __name__ == '__main__':
     # at least available & quorum has been formed. otw this will 
     # fail right away (before we start creating nodes)
     sessions = []
+    server_id = 0
     # create one session to each of the servers in the ensemble
     for server in servers:
-        sessions.append(ZKClient(server, options.timeout))
+        sessions.append(ZKClient(server, options.timeout, ssl_server_cert_id=server_id))
+        server_id += 1
 
     # ensure root_znode doesn't exist
     if sessions[0].exists(options.root_znode):

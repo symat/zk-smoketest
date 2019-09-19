@@ -5,3 +5,11 @@ cli_log*.txt
 ./*.csv
 lib-zk_cdh*/
 .idea/
+*.cer
+*.jks
+*.p12
+*.pem
+*.crt
+zk_latencies_*.txt
+remote_loadtest.log
+loadtest_results.csv

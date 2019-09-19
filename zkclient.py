@@ -27,7 +27,7 @@ class ZKClientError(Exception):
         return repr(self.value)
 
 class ZKClient(object):
-    def __init__(self, servers, timeout=DEFAULT_TIMEOUT):
+    def __init__(self, servers, timeout=DEFAULT_TIMEOUT, ssl_server_cert_id=0):
         self.timeout = timeout
         self.connected = False
         self.conn_cv = threading.Condition( )
@@ -36,7 +36,14 @@ class ZKClient(object):
         self.conn_cv.acquire()
         if not options.quiet: print("Connecting to %s" % (servers))
         start = time.time()
-        self.handle = zookeeper.init(servers, self.connection_watcher, timeout)
+        if options.use_ssl:
+            ssl_opts="%s,%s,%s,%s" % (options.ssl_server_certs_list[ssl_server_cert_id], options.ssl_client_cert,
+                                      options.ssl_client_key, options.ssl_password)
+            if not options.quiet: print("Using SSL options: %s" % ssl_opts)
+            self.handle = zookeeper.init_ssl(servers, ssl_opts, self.connection_watcher, timeout)
+        else:
+            self.handle = zookeeper.init(servers, self.connection_watcher, timeout)
+
         self.conn_cv.wait(timeout/1000)
         self.conn_cv.release()
 

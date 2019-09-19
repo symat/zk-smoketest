@@ -2,11 +2,15 @@
 
 # PARAMETERS you can overwrite
 
-ZK_SERVER_HOSTS=${ZK_SERVER_HOSTS:-"mszalay-zk-loadtest-1.vpc.cloudera.com mszalay-zk-loadtest-2.vpc.cloudera.com mszalay-zk-loadtest-3.vpc.cloudera.com"}
-LOAD_GENERATOR_HOST=${LOAD_GENERATOR_HOST:-"mszalay-zk-loadtest-6.vpc.cloudera.com"}
+export ZK_SERVER_HOSTS=${ZK_SERVER_HOSTS:-"mszalay-zk-loadtest-1.vpc.cloudera.com mszalay-zk-loadtest-2.vpc.cloudera.com mszalay-zk-loadtest-3.vpc.cloudera.com"}
+export LOAD_GENERATOR_HOST=${LOAD_GENERATOR_HOST:-"mszalay-zk-loadtest-6.vpc.cloudera.com"}
+export LOAD_GENERATOR_USE_SSL="true"
+#export ADDITIONAL_LOADTEST_OPTIONS="--debug"
 
 OUTPUT_FILE='loadtest_results.csv'
 LOG_FILE='remote_loadtest.log'
+
+ZK_EXTRA_JVM_ARGS=""
 
 
 function print_header {
@@ -29,7 +33,7 @@ function print_header {
 
 
 function start_load_test {
-  ZK_VERSION=$1 ZNODE_SIZE_KB=$2 ZNODE_COUNT=$3 ./start_single_remote_loadtest.sh 2>&1 | tee -a $LOG_FILE
+  ZK_VERSION=$1 ZNODE_SIZE_KB=$2 ZNODE_COUNT=$3 ZK_EXTRA_JVM_ARGS=$ZK_EXTRA_JVM_ARGS ./start_single_remote_loadtest.sh 2>&1 | tee -a $LOG_FILE
 
   RESULTS=`cat $LOG_FILE | grep "=== generate output" -A 1 | tail -n1`
   echo $RESULTS >> $OUTPUT_FILE
@@ -38,16 +42,17 @@ function start_load_test {
 
 
 print_header
-for zk in "cdh_7.0.0.0 3.5.5"
+
+for zk in 3.5.5_ZOOKEEPER-2122
 do
 
-  for znode_count in "10000 25000 50000 75000 100000 125000 150000 175000 200000"
+  for znode_count in 50000 100000 150000
   do
     start_load_test $zk 10 $znode_count
   done
 
-  for znode_size_kb in "1 5 10 25 50 100"
+  for znode_size_kb in 25 50 75 100 125
   do
-    start_load_test $zk 10 $znode_size_kb
+    start_load_test $zk $znode_size_kb 10000
   done
 done
