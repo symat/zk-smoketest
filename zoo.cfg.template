@@ -5,23 +5,27 @@ dataLogDir=/mnt/data/zookeeper
 clientPort=2181
 secureClientPort=21811
 maxClientCnxns=60
-minSessionTimeout=4000
-maxSessionTimeout=60000
 autopurge.purgeInterval=24
 autopurge.snapRetainCount=2
 quorum.auth.enableSasl=false
 quorum.cnxn.threads.size=20
 leaderServes=yes
 
+# using SSL, we had to increase the session timeout to have stable results
+# (might be the problem of the C-client, the python binding or the load test tool)
+minSessionTimeout=600000
+maxSessionTimeout=600000
+
+
 # server-side netty:
 serverCnxnFactory=org.apache.zookeeper.server.NettyServerCnxnFactory
 
 # quorum TSL encryption
-sslQuorum=true
-ssl.quorum.keyStore.location=/root/zookeeper/keystore.jks
-ssl.quorum.keyStore.password=password
-ssl.quorum.trustStore.location=/root/zookeeper/truststore.jks
-ssl.quorum.trustStore.password=password
+# sslQuorum=true
+# ssl.quorum.keyStore.location=/root/zookeeper/keystore.jks
+# ssl.quorum.keyStore.password=password
+# ssl.quorum.trustStore.location=/root/zookeeper/truststore.jks
+# ssl.quorum.trustStore.password=password
 
 # server-client TSL encryption
 ssl.keyStore.location=/root/zookeeper/keystore.jks
