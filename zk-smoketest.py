@@ -37,6 +37,17 @@ parser.add_option("-v", "--verbose",
 parser.add_option("-q", "--quiet",
                   action="store_true", dest="quiet", default=False,
                   help="quiet output, basically just success/failure")
+parser.add_option("-s", "--use_ssl",
+                  action="store_true", dest="use_ssl", default=False,
+                  help="connecting to the ZooKeeper cluster using SSL")
+parser.add_option("", "--ssl_client_cert", dest="ssl_client_cert",
+                  default=None, help="path to the client SSL certificate file")
+parser.add_option("", "--ssl_server_certs", dest="ssl_server_certs",
+                  default=None, help="comma separated list of paths to the server SSL certificate files")
+parser.add_option("", "--ssl_client_key", dest="ssl_client_key",
+                  default=None, help="path to the client SSL secret key file")
+parser.add_option("", "--ssl_password", dest="ssl_password",
+                  default=None, help="password to use during SSL ")
 
 (options, args) = parser.parse_args()
 

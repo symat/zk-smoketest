@@ -4,7 +4,7 @@
 
 export ZK_SERVER_HOSTS=${ZK_SERVER_HOSTS:-"mszalay-zk-loadtest-1.vpc.cloudera.com mszalay-zk-loadtest-2.vpc.cloudera.com mszalay-zk-loadtest-3.vpc.cloudera.com"}
 export LOAD_GENERATOR_HOST=${LOAD_GENERATOR_HOST:-"mszalay-zk-loadtest-6.vpc.cloudera.com"}
-export LOAD_GENERATOR_USE_SSL="true"
+export LOAD_GENERATOR_USE_SSL="false"
 #export ADDITIONAL_LOADTEST_OPTIONS="--debug"
 
 OUTPUT_FILE='loadtest_results.csv'

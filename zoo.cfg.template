@@ -3,7 +3,7 @@ syncLimit=5
 dataDir=/mnt/data/zookeeper
 dataLogDir=/mnt/data/zookeeper
 clientPort=2181
-secureClientPort=21811
+# secureClientPort=21811
 maxClientCnxns=60
 autopurge.purgeInterval=24
 autopurge.snapRetainCount=2
@@ -18,7 +18,7 @@ maxSessionTimeout=600000
 
 
 # server-side netty:
-serverCnxnFactory=org.apache.zookeeper.server.NettyServerCnxnFactory
+# serverCnxnFactory=org.apache.zookeeper.server.NettyServerCnxnFactory
 
 # quorum TSL encryption
 # sslQuorum=true
@@ -28,7 +28,7 @@ serverCnxnFactory=org.apache.zookeeper.server.NettyServerCnxnFactory
 # ssl.quorum.trustStore.password=password
 
 # server-client TSL encryption
-ssl.keyStore.location=/root/zookeeper/keystore.jks
-ssl.keyStore.password=password
-ssl.trustStore.location=/root/zookeeper/truststore.jks
-ssl.trustStore.password=password
+# ssl.keyStore.location=/root/zookeeper/keystore.jks
+# ssl.keyStore.password=password
+# ssl.trustStore.location=/root/zookeeper/truststore.jks
+# ssl.trustStore.password=password
